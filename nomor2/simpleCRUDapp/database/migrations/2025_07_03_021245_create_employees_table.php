@@ -17,8 +17,7 @@ return new class extends Migration
             $table->string('nama', 150);
             $table->string('jabatan', 200)->nullable();
             $table->date('talahir')->nullable(); 
-            $table->string('photo_upload_path', 255)->nullable(); 
-            $table->string('photo_upload_url', 255)->nullable(); 
+            $table->string('photo_upload_path', 255)->nullable();  
             $table->string('created_by', 150)->nullable();
             $table->string('updated_by', 150)->nullable();
             $table->softDeletes('deleted_on'); 

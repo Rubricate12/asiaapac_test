@@ -9,23 +9,23 @@ use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
-    // get semua karyawan
+    //get semua karyawan
     public function index()
     {
         $employees = Employee::latest()->paginate(10);
         return view('employees.index', compact('employees'));
     }
 
-    //pindah ke form agar bisa buat data baru
+    //form untuk create
     public function create()
     {
         return view('employees.create');
     }
 
-    //simpan ke database
+    //simpan daTa karyawan ke db
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'nomor' => 'required|string|max:15|unique:employees,nomor',
             'nama' => 'required|string|max:150',
             'jabatan' => 'nullable|string|max:200',
@@ -37,10 +37,7 @@ class EmployeeController extends Controller
 
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('photos', 's3');
-            $url = Storage::disk('s3')->url($path);
-
             $data['photo_upload_path'] = $path;
-            $data['photo_upload_url'] = $url;
         }
 
         $employee = Employee::create($data);
@@ -50,22 +47,16 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Karyawan berhasil ditambahkan.');
     }
 
-    //menampilkan 1 karyawan saja
-    public function show(Employee $employee)
-    {
-        return view('employees.show', compact('employee'));
-    }
-
-    //form untuk edit data karyawan
+    //redirect ke form
     public function edit(Employee $employee)
     {
         return view('employees.edit', compact('employee'));
     }
 
-    //update data karyawan
+    //edit data karyawan
     public function update(Request $request, Employee $employee)
     {
-        $validated = $request->validate([
+        $request->validate([
             'nomor' => 'required|string|max:15|unique:employees,nomor,' . $employee->id,
             'nama' => 'required|string|max:150',
             'jabatan' => 'nullable|string|max:200',
@@ -74,22 +65,20 @@ class EmployeeController extends Controller
         ]);
 
         $data = $request->except('photo');
-        $oldNomor = $employee->nomor; 
+        $oldNomor = $employee->nomor;
 
+        //update dgn s3
         if ($request->hasFile('photo')) {
             if ($employee->photo_upload_path) {
                 Storage::disk('s3')->delete($employee->photo_upload_path);
             }
 
             $path = $request->file('photo')->store('photos', 's3');
-            $url = Storage::disk('s3')->url($path);
             $data['photo_upload_path'] = $path;
-            $data['photo_upload_url'] = $url;
         }
 
         $employee->update($data);
 
-        
         Redis::del('emp_' . $oldNomor);
         Redis::set('emp_' . $employee->nomor, $employee->toJson());
 
@@ -99,10 +88,8 @@ class EmployeeController extends Controller
     //delete data karyawan
     public function destroy(Employee $employee)
     {
-        Redis::del('emp_' . $employee->nomor);
-
         $employee->delete();
-
+        Redis::del('emp_' . $employee->nomor);
         return redirect()->route('employees.index')->with('success', 'Data karyawan berhasil dihapus.');
     }
 }
